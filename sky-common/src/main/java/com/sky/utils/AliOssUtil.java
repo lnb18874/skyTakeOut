@@ -4,6 +4,8 @@ import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.OSSException;
+import com.sky.constant.MessageConstant;
+import com.sky.exception.FileUploadException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -35,17 +37,14 @@ public class AliOssUtil {
             // 创建PutObject请求。
             ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
         } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
+            //请求已到达OSS，但因服务端拒绝而失败（鉴权、bucket、权限等）
+            log.error("OSS上传被拒绝, ErrorMessage:{}, ErrorCode:{}, RequestId:{}, HostId:{}",
+                    oe.getErrorMessage(), oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
+            throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
         } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
+            //客户端与OSS通信异常（网络不可达等本地问题）
+            log.error("OSS客户端通信异常, ErrorMessage:{}", ce.getMessage());
+            throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();

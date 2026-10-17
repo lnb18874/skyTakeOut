@@ -2,6 +2,7 @@ package com.sky.handler;
 
 import com.sky.constant.MessageConstant;
 import com.sky.exception.BaseException;
+import com.sky.exception.FileUploadException;
 import com.sky.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -29,6 +30,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler
     public Result exceptionHandler(SQLIntegrityConstraintViolationException ex){
+        log.error("数据库约束异常：{}", ex.getMessage(), ex);
         //Duplicate entry '御凤英' for key 'employee.idx_username'
         String message = ex.getMessage();
         if(message.contains("Duplicate entry")){
@@ -39,6 +41,12 @@ public class GlobalExceptionHandler {
         }else{
             return Result.error(MessageConstant.UNKNOWN_ERROR);
         }
+    }
+
+    @ExceptionHandler
+    public Result exceptionHandler(FileUploadException ex){
+        log.error("异常信息：{}", ex.getMessage());
+        return Result.error(MessageConstant.UNKNOWN_ERROR);
     }
 
 }

@@ -19,7 +19,9 @@ public class OssConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AliOssUtil aliOssUtil(AliOssProperties aliOssProperties){
-        log.info("初始化阿里云OSS工具类:{}", aliOssProperties);
+        //只打印非敏感字段，accessKeyId/accessKeySecret 不得写入日志
+        log.info("初始化阿里云OSS工具类, endpoint:{}, bucketName:{}",
+                aliOssProperties.getEndpoint(), aliOssProperties.getBucketName());
         return new AliOssUtil(aliOssProperties.getEndpoint(),
                 aliOssProperties.getAccessKeyId(),
                 aliOssProperties.getAccessKeySecret(),
