@@ -1,0 +1,16 @@
+# 本文件是配置模板，可以安全提交到 git。
+# 使用方法：复制为同目录下的 application-dev.yml，把尖括号占位符换成你自己的真实值。
+# application-dev.yml 已在 .gitignore 中声明，不会被提交。
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: sky_take_out
+    username: <你的MySQL用户名>
+    password: <你的MySQL密码>
+  alioss:
+    endpoint: <你的OSS地域节点，如 oss-cn-beijing.aliyuncs.com>
+    access-key-id: <你的OSS AccessKeyId>
+    access-key-secret: <你的OSS AccessKeySecret>
+    bucket-name: <你的OSS Bucket名称>
