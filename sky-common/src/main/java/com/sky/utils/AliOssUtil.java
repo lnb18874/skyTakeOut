@@ -34,17 +34,28 @@ public class AliOssUtil {
         OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
 
         try {
-            // 创建PutObject请求。
-            ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
-        } catch (OSSException oe) {
-            //请求已到达OSS，但因服务端拒绝而失败（鉴权、bucket、权限等）
-            log.error("OSS上传被拒绝, ErrorMessage:{}, ErrorCode:{}, RequestId:{}, HostId:{}",
-                    oe.getErrorMessage(), oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
-            throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
-        } catch (ClientException ce) {
-            //客户端与OSS通信异常（网络不可达等本地问题）
-            log.error("OSS客户端通信异常, ErrorMessage:{}", ce.getMessage());
-            throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
+            // 本地代理链路不稳定时响应可能被污染（InvalidResponse等），重试一次大概率能躲过瞬时抖动
+            for (int attempt = 1; ; attempt++) {
+                try {
+                    // 创建PutObject请求。
+                    ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
+                    break;
+                } catch (OSSException oe) {
+                    //请求已到达OSS，但因服务端拒绝或响应被篡改而失败（鉴权、bucket、代理污染等）
+                    if (attempt >= 2) {
+                        throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
+                    }
+                    log.warn("OSS上传被拒绝, 重试第{}次, ErrorMessage:{}, ErrorCode:{}, RequestId:{}, HostId:{}",
+                            attempt, oe.getErrorMessage(), oe.getErrorCode(), oe.getRequestId(), oe.getHostId());
+                } catch (ClientException ce) {
+                    //客户端与OSS通信异常（网络不可达、代理链路异常等本地问题）
+                    if (attempt >= 2) {
+                        log.error("OSS客户端通信异常, ErrorMessage:{}", ce.getMessage());
+                        throw new FileUploadException(MessageConstant.UPLOAD_FAILED);
+                    }
+                    log.warn("OSS客户端通信异常, 重试第{}次, ErrorMessage:{}", attempt, ce.getMessage());
+                }
+            }
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();
