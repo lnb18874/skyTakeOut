@@ -14,3 +14,10 @@ sky:
     access-key-id: <你的OSS AccessKeyId>
     access-key-secret: <你的OSS AccessKeySecret>
     bucket-name: <你的OSS Bucket名称>
+  redis:
+    host:
+    port:
+    database:
+  wechat:
+    appid:
+    secret:

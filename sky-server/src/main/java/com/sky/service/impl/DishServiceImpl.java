@@ -154,12 +154,42 @@ public class DishServiceImpl implements DishService {
             List<Setmeal> onSale = setmealMapper.getByDishId(id);
             if(!onSale.isEmpty()){
                 //拼接套餐名
-                String setmealNames = onSale.stream().map(Setmeal::getName).collect(Collectors.joining("、"));
+                String setmealNames = "";
+                if(onSale.size()<=3){
+                    setmealNames = onSale.stream().map(Setmeal::getName).collect(Collectors.joining("、"));
+                }else{
+                    setmealNames = onSale.stream().map(Setmeal::getName).limit(3).collect(Collectors.joining("、"))+"...";
+                }
                 throw new SetmealEnableFailedException(MessageConstant.DISH_BE_RELATED_BY_ON_SALE_SETMEAL+":"+setmealNames);
             }
         }
         dishMapper.updateStatus(status, id, BaseContext.getCurrentId());
     }
+
+    /**
+     * 条件查询菜品和口味
+     * @param dish
+     * @return
+     */
+    public List<DishVO> listWithFlavor(Dish dish) {
+        List<Dish> dishList = dishMapper.list(dish);
+
+        List<DishVO> dishVOList = new ArrayList<>();
+
+        for (Dish d : dishList) {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(d,dishVO);
+
+            //根据菜品id查询对应的口味
+            List<DishFlavor> flavors = dishFlavorMapper.getByDishId(d.getId());
+
+            dishVO.setFlavors(flavors);
+            dishVOList.add(dishVO);
+        }
+
+        return dishVOList;
+    }
+
 
     /**
      * 保存菜品口味
