@@ -49,4 +49,11 @@ public class ShoppingCartController {
         shoppingCartService.cleanShoppingCart();
         return Result.success();
     }
+
+    @PostMapping("/sub")
+    public Result<List<ShoppingCart>> sub(@RequestBody ShoppingCartDTO shoppingCartDTO){
+        log.info("购物车数据：{}", shoppingCartDTO);
+        List<ShoppingCart> list=shoppingCartService.subShoppingCart(shoppingCartDTO);
+        return Result.success(list);
+    }
 }
