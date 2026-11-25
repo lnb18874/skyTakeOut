@@ -21,3 +21,10 @@ sky:
   wechat:
     appid:
     secret:
+    mchid: "<替换为你的商户号>"
+    mchSerialNo: "<替换为你的商户API证书序列号>"
+    privateKeyFilePath: "<替换为你的商户私钥文件路径 apiclient_key.pem>"
+    apiV3Key: "<替换为你的证书解密密钥>"
+    weChatPayCertFilePath: "<替换为你的微信支付平台证书路径>"
+    notifyUrl: "<替换为你的支付成功回调地址>"
+    refundNotifyUrl: "<替换为你的退款成功回调地址>"

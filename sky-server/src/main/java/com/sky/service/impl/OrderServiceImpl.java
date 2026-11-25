@@ -21,6 +21,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import io.jsonwebtoken.lang.Collections;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.BCException;
@@ -62,7 +63,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Value("${sky.baidu.ak}")
     private String ak;
-
+    @Autowired
+    private WebSocketServer webSocketServer;
 
 
     /**
@@ -170,6 +172,16 @@ public class OrderServiceImpl implements OrderService {
         log.info("调用updateStatus，用于替换微信支付更新数据库状态的问题");
         orderMapper.updateStatus(OrderStatus,OrderPaidStatus,check_out_time,orderNumber);
 
+        //因支付已 mock 跳过，微信不会回调 paySuccess，这里手动向管理端推送"来单提醒"
+        Orders ordersDB = orderMapper.getByNumber(orderNumber);
+        if (ordersDB != null) {
+            Map map = new HashMap();
+            map.put("type", 1);//1表示来单提醒
+            map.put("orderId", ordersDB.getId());
+            map.put("content", "订单号:" + orderNumber);
+            webSocketServer.sendToAllClient(JSON.toJSONString(map));
+        }
+
         return vo;
     }
 
@@ -192,6 +204,15 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+
+        Map map = new HashMap();
+        map.put("type",1);//1表示来单提醒，2表示用户催单
+        map.put("orderId",ordersDB.getId());
+        map.put("content","订单号:"+outTradeNo);
+
+        String json=JSON.toJSONString(map);
+        webSocketServer.sendToAllClient(json);
+
     }
 
     @Override
@@ -302,6 +323,16 @@ public class OrderServiceImpl implements OrderService {
         }).collect(Collectors.toList());
 
         shoppingCartMapper.insertBatch(shoppingCartList);
+
+        //向管理端推送"催单提醒"
+        Orders ordersDB = orderMapper.getById(id);
+        if (ordersDB != null) {
+            Map map = new HashMap();
+            map.put("type", 2);//2表示用户催单
+            map.put("orderId", id);
+            map.put("content", "订单号:" + ordersDB.getNumber());
+            webSocketServer.sendToAllClient(JSON.toJSONString(map));
+        }
     }
 
     /**
@@ -425,6 +456,20 @@ public class OrderServiceImpl implements OrderService {
         orders.setStatus(Orders.COMPLETED);
         orders.setDeliveryTime(LocalDateTime.now());
         orderMapper.update(orders);
+    }
+
+    @Override
+    public void reminder(Long id) {
+        Orders ordersDB = orderMapper.getById(id);
+        if(ordersDB==null){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Map map=new HashMap();
+        map.put("type",2);//2表示用户催单
+        map.put("orderId",id);
+        map.put("content","订单号:"+ordersDB.getNumber());
+
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
     }
 
     private List<OrderVO> getOrderVOList(Page<Orders> page) {
